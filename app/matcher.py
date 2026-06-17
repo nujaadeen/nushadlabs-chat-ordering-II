@@ -113,12 +113,19 @@ def match_item(item: Item, products: List[Product]) -> ItemMatch:
     selected = None
     ambiguous = True
     if candidates:
-        best = candidates[0]
-        second = candidates[1].score if len(candidates) > 1 else 0.0
-        leads = (best.score - second) >= LEAD_MARGIN or len(candidates) == 1
-        if best.score >= _threshold() and leads:
-            selected = best
+        # A single perfect (case-insensitive) match wins outright — no lead-margin
+        # check needed. Only ambiguous if MORE than one product ties at 100.
+        perfect = [c for c in scored if c.score >= 100.0]
+        if len(perfect) == 1:
+            selected = perfect[0]
             ambiguous = False
+        else:
+            best = candidates[0]
+            second = candidates[1].score if len(candidates) > 1 else 0.0
+            leads = (best.score - second) >= LEAD_MARGIN or len(candidates) == 1
+            if not perfect and best.score >= _threshold() and leads:
+                selected = best
+                ambiguous = False
 
     match = ItemMatch(
         raw_name=item.raw_name,
