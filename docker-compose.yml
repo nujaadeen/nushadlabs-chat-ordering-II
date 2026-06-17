@@ -1,0 +1,23 @@
+# MySQL 8.0 only. The FastAPI app runs on the HOST via uvicorn, not in compose.
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: ordering-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: ordering
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      # Mark the DB ready only once it actually answers pings.
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-prootpass"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+volumes:
+  mysql_data:
