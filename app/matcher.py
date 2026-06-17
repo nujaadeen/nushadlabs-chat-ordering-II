@@ -5,9 +5,10 @@ No embeddings, no vector DB, no SQL LIKE/FULLTEXT. The LLM only supplies
 never be hallucinated — candidates always come from the DB list.
 """
 import os
+import re
 from typing import List
 
-from rapidfuzz import fuzz
+from rapidfuzz import fuzz, utils
 
 from app.db import Product
 from app.logging_config import get_logger
@@ -39,11 +40,40 @@ def _threshold() -> float:
 SET_WEIGHT = 0.7
 SORT_WEIGHT = 0.3
 
+# Filler/connective words that may sneak into a query but carry no product
+# meaning. rapidfuzz's default_process only lowercases + strips punctuation; it
+# does NOT drop stopwords, so we remove these ourselves BEFORE scoring.
+_STOPWORDS = {
+    "a", "an", "the", "some", "of", "with", "without", "and", "or",
+    "to", "my", "me", "please", "i", "want", "order", "add", "get", "for", "no",
+}
+
+
+def _prepare_query(item: Item) -> str:
+    """Build the search string for one item.
+
+    Order matters: strip the item's own modifiers and filler stopwords FIRST
+    (default_process won't do this), then scoring applies default_process to
+    handle case/punctuation uniformly on both sides. Manual lowercasing is no
+    longer needed here — default_process owns case normalization.
+    """
+    text = item.normalized_name or item.raw_name
+    # Remove any modifier phrases the LLM already split out (e.g. 'without olive').
+    for mod in item.modifiers:
+        if mod.strip():
+            text = re.sub(re.escape(mod), " ", text, flags=re.IGNORECASE)
+    tokens = [t for t in re.split(r"\s+", text) if t and t.lower() not in _STOPWORDS]
+    return " ".join(tokens) if tokens else (item.normalized_name or item.raw_name)
+
 
 def _name_similarity(query: str, name: str) -> float:
+    # processor=default_process normalizes BOTH the query and the product name
+    # (lowercase + strip punctuation) so an exact match is case-insensitively 100.
     return (
-        SET_WEIGHT * fuzz.token_set_ratio(query, name)
-        + SORT_WEIGHT * fuzz.token_sort_ratio(query, name)
+        SET_WEIGHT
+        * fuzz.token_set_ratio(query, name, processor=utils.default_process)
+        + SORT_WEIGHT
+        * fuzz.token_sort_ratio(query, name, processor=utils.default_process)
     )
 
 
@@ -65,7 +95,7 @@ def _score(query: str, product: Product) -> float:
 
 def match_item(item: Item, products: List[Product]) -> ItemMatch:
     """Score one extracted item against all products and decide confidence."""
-    query = item.normalized_name or item.raw_name
+    query = _prepare_query(item)
 
     scored = [
         Candidate(
@@ -83,12 +113,19 @@ def match_item(item: Item, products: List[Product]) -> ItemMatch:
     selected = None
     ambiguous = True
     if candidates:
-        best = candidates[0]
-        second = candidates[1].score if len(candidates) > 1 else 0.0
-        leads = (best.score - second) >= LEAD_MARGIN or len(candidates) == 1
-        if best.score >= _threshold() and leads:
-            selected = best
+        # A single perfect (case-insensitive) match wins outright — no lead-margin
+        # check needed. Only ambiguous if MORE than one product ties at 100.
+        perfect = [c for c in scored if c.score >= 100.0]
+        if len(perfect) == 1:
+            selected = perfect[0]
             ambiguous = False
+        else:
+            best = candidates[0]
+            second = candidates[1].score if len(candidates) > 1 else 0.0
+            leads = (best.score - second) >= LEAD_MARGIN or len(candidates) == 1
+            if not perfect and best.score >= _threshold() and leads:
+                selected = best
+                ambiguous = False
 
     match = ItemMatch(
         raw_name=item.raw_name,
