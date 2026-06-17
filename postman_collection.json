@@ -1,0 +1,80 @@
+{
+  "info": {
+    "name": "Stateless Intent + Product Matching Service",
+    "description": "Phase-1 ordering intent extraction + deterministic product matching. App base URL: http://localhost:8000",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8000" }
+  ],
+  "item": [
+    {
+      "name": "1. ORDER - pepperoni pizza",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{baseUrl}}/process", "host": ["{{baseUrl}}"], "path": ["process"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message\": \"i want to order a pepperoni pizza\",\n  \"session_id\": \"optional-ignored\"\n}"
+        }
+      }
+    },
+    {
+      "name": "2. ADD_TO_CART - single cheese pizza",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{baseUrl}}/process", "host": ["{{baseUrl}}"], "path": ["process"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message\": \"add a cheese pizza to my cart\",\n  \"session_id\": \"optional-ignored\"\n}"
+        }
+      }
+    },
+    {
+      "name": "3. ADD_TO_CART - multi (pizza + coke)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{baseUrl}}/process", "host": ["{{baseUrl}}"], "path": ["process"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message\": \"add peperonio cheese pizza and a coke to my cart\",\n  \"session_id\": \"optional-ignored\"\n}"
+        }
+      }
+    },
+    {
+      "name": "4. CHECKOUT",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{baseUrl}}/process", "host": ["{{baseUrl}}"], "path": ["process"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message\": \"checkout please\",\n  \"session_id\": \"optional-ignored\"\n}"
+        }
+      }
+    },
+    {
+      "name": "5. Ambiguous - add a pizza",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": { "raw": "{{baseUrl}}/process", "host": ["{{baseUrl}}"], "path": ["process"] },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"message\": \"add a pizza to my cart\",\n  \"session_id\": \"optional-ignored\"\n}"
+        }
+      }
+    },
+    {
+      "name": "6. GET /health",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/health", "host": ["{{baseUrl}}"], "path": ["health"] }
+      }
+    }
+  ]
+}
