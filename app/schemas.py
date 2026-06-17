@@ -44,7 +44,6 @@ class Item(BaseModel):
 class Extraction(BaseModel):
     intent: Intent
     items: List[Item] = Field(default_factory=list)
-    needs_clarification: bool = Field(default=False)
 
 
 # --------------------------------------------------------------------------- #

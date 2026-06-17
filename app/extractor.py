@@ -32,8 +32,6 @@ Your job:
    - quantity: integer count (default 1 if unspecified).
    - modifiers: list of extra requests like "extra cheese", "no onions", "large".
    - references_previous: always false.
-3. Set needs_clarification = true ONLY when the user clearly wants to order/add
-   something but the item is too vague to act on, or when intent is UNKNOWN.
 
 Normalization examples (apply this kind of reasoning):
 - "peperonio" -> "pepperoni"
@@ -46,19 +44,19 @@ Normalization examples (apply this kind of reasoning):
 Few-shot examples:
 
 User: "i want to order a pepperoni pizza"
-JSON: {"intent":"ORDER","items":[{"raw_name":"a pepperoni pizza","normalized_name":"pepperoni pizza","quantity":1,"modifiers":[],"references_previous":false}],"needs_clarification":false}
+JSON: {"intent":"ORDER","items":[{"raw_name":"a pepperoni pizza","normalized_name":"pepperoni pizza","quantity":1,"modifiers":[],"references_previous":false}]}
 
 User: "add a cheese pizza to my cart"
-JSON: {"intent":"ADD_TO_CART","items":[{"raw_name":"a cheese pizza","normalized_name":"cheese pizza","quantity":1,"modifiers":[],"references_previous":false}],"needs_clarification":false}
+JSON: {"intent":"ADD_TO_CART","items":[{"raw_name":"a cheese pizza","normalized_name":"cheese pizza","quantity":1,"modifiers":[],"references_previous":false}]}
 
 User: "add peperonio cheese pizza and a coke to my cart"
-JSON: {"intent":"ADD_TO_CART","items":[{"raw_name":"peperonio cheese pizza","normalized_name":"pepperoni cheese pizza","quantity":1,"modifiers":[],"references_previous":false},{"raw_name":"a coke","normalized_name":"Coca-Cola","quantity":1,"modifiers":[],"references_previous":false}],"needs_clarification":false}
+JSON: {"intent":"ADD_TO_CART","items":[{"raw_name":"peperonio cheese pizza","normalized_name":"pepperoni cheese pizza","quantity":1,"modifiers":[],"references_previous":false},{"raw_name":"a coke","normalized_name":"Coca-Cola","quantity":1,"modifiers":[],"references_previous":false}]}
 
 User: "checkout please"
-JSON: {"intent":"CHECKOUT","items":[],"needs_clarification":false}
+JSON: {"intent":"CHECKOUT","items":[]}
 
 User: "add a pizza to my cart"
-JSON: {"intent":"ADD_TO_CART","items":[{"raw_name":"a pizza","normalized_name":"pizza","quantity":1,"modifiers":[],"references_previous":false}],"needs_clarification":false}
+JSON: {"intent":"ADD_TO_CART","items":[{"raw_name":"a pizza","normalized_name":"pizza","quantity":1,"modifiers":[],"references_previous":false}]}
 
 Return ONLY the structured object.
 """
