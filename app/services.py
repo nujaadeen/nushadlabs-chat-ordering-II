@@ -27,9 +27,9 @@ def _match_all(extraction: Extraction) -> List[ItemMatch]:
 def process_message(message: str) -> ProcessResponse:
     extraction = extract(message)  # the single LLM call (+ checkpoint #1)
 
-    # No DB calls for clarification / unknown.
-    if extraction.intent == Intent.UNKNOWN or extraction.needs_clarification:
-        logger.info("ROUTING: clarification required (no DB calls)")
+    # UNKNOWN: nothing actionable -> clarify (no DB calls).
+    if extraction.intent == Intent.UNKNOWN:
+        logger.info("ROUTING: UNKNOWN intent -> clarification (no DB calls)")
         return ProcessResponse(
             intent=extraction.intent,
             needs_clarification=True,
@@ -43,12 +43,30 @@ def process_message(message: str) -> ProcessResponse:
         logger.info(action)
         return ProcessResponse(
             intent=extraction.intent,
+            needs_clarification=False,
             items=[],
             actions=[action],
             message="Checkout requested. checkout - api not ready",
         )
 
-    # ORDER / ADD_TO_CART both need matching (+ checkpoint #2 per item).
+    # ORDER / ADD_TO_CART are actions. We DELIBERATELY ignore the LLM's
+    # extraction.needs_clarification flag as a routing gate — the local model sets
+    # it erratically on negation phrasing ("without tomatoes") and it must never
+    # prevent matching. Clarification is derived from results below, not the flag.
+    # The ONLY pre-match clarification for an action is "no items were extracted".
+    if not extraction.items:
+        logger.info(
+            "ROUTING: %s with zero items -> clarification", extraction.intent.value
+        )
+        return ProcessResponse(
+            intent=extraction.intent,
+            needs_clarification=True,
+            items=[],
+            actions=[],
+            message="Could you tell me which item(s) you'd like?",
+        )
+
+    # Always match EVERY extracted item (+ checkpoint #2 per item).
     matches = _match_all(extraction)
     actions: List[str] = []
 
